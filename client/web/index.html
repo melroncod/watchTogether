@@ -4,17 +4,44 @@
   <meta charset="UTF-8">
   <title>Sync Streamer</title>
   <link rel="stylesheet" href="/static/styles.css">
+  <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body>
   <h1>Sync Streamer</h1>
+
   <div class="controls">
-    <label for="mediaList">Выберите видео:</label>
-    <select id="mediaList"></select>
+    <label for="mediaList">Локальные видео:</label>
+    <select id="mediaList">
+      <!-- пустой вариант, чтобы просто ввести URL -->
+      <option value="" selected>— введите или выберите —</option>
+    </select>
+
+    <label for="urlInput">или ссылка (YouTube/Rutube/HTTP):</label>
+    <input type="text" id="urlInput" placeholder="https://...">
+
     <button id="load">Load</button>
     <button id="play">Play</button>
     <button id="pause">Pause</button>
   </div>
-  <video id="video" controls width="800" style="margin-top: 1rem; background: #000;"></video>
+
+  <!-- Центрируем контейнер с плеером -->
+  <div id="playerWrapper">
+    <div id="playerContainer">
+      <video id="video" controls style="display:none;"></video>
+      <div id="ytPlayer" style="display:none;"></div>
+    </div>
+  </div>
+
+  <!-- Чат -->
+  <div class="chat">
+    <div id="messages" class="messages"></div>
+    <div class="chat-input">
+      <input type="text" id="chatUser" placeholder="Ваше имя" />
+      <input type="text" id="chatText" placeholder="Сообщение..." />
+      <button id="chatSend">Send</button>
+    </div>
+  </div>
+
   <script src="/static/app.js"></script>
 </body>
 </html>

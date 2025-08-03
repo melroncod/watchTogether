@@ -1,79 +1,173 @@
-// Устанавливаем WebSocket-соединение
-const ws = new WebSocket(`ws://${location.host}/ws`);
+// client/web/app.js
 
-// Элементы страницы
-const video     = document.getElementById("video");
-const mediaList = document.getElementById("mediaList");
-const loadBtn   = document.getElementById("load");
-const playBtn   = document.getElementById("play");
-const pauseBtn  = document.getElementById("pause");
+// 1) WebSocket
+const protocol = location.protocol === "https:" ? "wss" : "ws";
+const ws       = new WebSocket(`${protocol}://${location.host}/ws`);
 
-// 1) При загрузке страницы получаем список файлов из /media/list
+// DOM-элементы
+const video       = document.getElementById("video");
+const ytContainer = document.getElementById("ytPlayer");
+const mediaList   = document.getElementById("mediaList");
+const urlInput    = document.getElementById("urlInput");
+const loadBtn     = document.getElementById("load");
+const playBtn     = document.getElementById("play");
+const pauseBtn    = document.getElementById("pause");
+const messagesEl  = document.getElementById("messages");
+const chatUser    = document.getElementById("chatUser");
+const chatText    = document.getElementById("chatText");
+const chatSend    = document.getElementById("chatSend");
+
+let ytPlayer = null;
+let ytPoll   = null;
+
+// 2) Загрузка списка локальных видео
 fetch("/media/list")
-  .then(resp => resp.json())
+  .then(r => r.json())
   .then(files => {
-    files.forEach(fn => {
-      const opt = document.createElement("option");
-      opt.value = fn;
-      opt.textContent = fn;
-      mediaList.appendChild(opt);
-    });
+    mediaList.innerHTML = `<option value="" selected>— введите или выберите —</option>`;
+    if (files.length === 0) {
+      mediaList.innerHTML += `<option disabled>Нет файлов</option>`;
+    } else {
+      for (const fn of files) {
+        const o = document.createElement("option");
+        o.value = o.textContent = fn;
+        mediaList.append(o);
+      }
+    }
   })
-  .catch(err => console.error("Не удалось загрузить список медиа:", err));
+  .catch(e => {
+    console.error("media/list failed:", e);
+    mediaList.innerHTML = `<option disabled>Ошибка загрузки</option>`;
+  });
 
-// 2) Обработка входящих WebSocket-сообщений
-ws.onmessage = evt => {
+// 3) YouTube-хелперы
+function extractYTId(url) {
+  const m = url.match(/(?:youtu\.be\/|youtube\.com\/.*v=)([\w-]{11})/);
+  return m ? m[1] : null;
+}
+function cleanupPlayers() {
+  // Локальный плеер
+  video.pause();
+  video.removeAttribute("src");
+  video.load();
+  // YouTube
+  if (ytPlayer) {
+    ytPlayer.destroy();
+    ytPlayer = null;
+  }
+  if (ytPoll) {
+    clearInterval(ytPoll);
+    ytPoll = null;
+  }
+}
+function createYT(id) {
+  ytContainer.innerHTML = "";
+  return new YT.Player("ytPlayer", {
+    height: "450", width: "800", videoId: id,
+    playerVars: { autoplay: 0, controls: 1 },
+    events: {
+      onReady: e => {
+        // Запускаем polling для seek
+        let last = e.target.getCurrentTime();
+        ytPoll = setInterval(() => {
+          const now = e.target.getCurrentTime();
+          if (Math.abs(now - last) > 1) {
+            ws.send(JSON.stringify({ type: "seek", time: now }));
+          }
+          last = now;
+        }, 500);
+      },
+      onStateChange: e => {
+        if (e.data === YT.PlayerState.PLAYING) {
+          ws.send(JSON.stringify({ type: "play" }));
+        }
+        if (e.data === YT.PlayerState.PAUSED) {
+          ws.send(JSON.stringify({ type: "pause" }));
+        }
+      }
+    }
+  });
+}
+
+// 4) Load
+loadBtn.addEventListener("click", () => {
+  const custom   = urlInput.value.trim();
+  const selection = mediaList.value;
+  let url = "";
+  if (custom) url = custom;
+  else if (selection) url = selection;
+  else return; // ничего не выбрано
+
+  ws.send(JSON.stringify({ type: "load", url }));
+});
+
+// 5) Play / Pause
+playBtn.addEventListener("click", () => ws.send(JSON.stringify({ type: "play" })));
+pauseBtn.addEventListener("click", () => ws.send(JSON.stringify({ type: "pause" })));
+
+// 6) Local video timeupdate
+video.addEventListener("timeupdate", () => {
+  ws.send(JSON.stringify({ type: "time_update", time: video.currentTime }));
+});
+
+// 7) Chat
+chatSend.addEventListener("click", () => {
+  const user = chatUser.value.trim() || "Anon";
+  const text = chatText.value.trim();
+  if (!text) return;
+  ws.send(JSON.stringify({ type: "chat", user, text }));
+  chatText.value = "";
+});
+
+// 8) Обработка входящих сообщений
+ws.addEventListener("message", evt => {
   const msg = JSON.parse(evt.data);
   switch (msg.type) {
     case "load":
-      // Устанавливаем источник видео
-      video.src = msg.url.startsWith("http")
-        ? msg.url
-        : `/media/${msg.url}`;
+      cleanupPlayers();
+      const ytId = extractYTId(msg.url);
+      if (ytId) {
+        video.style.display = "none";
+        ytContainer.style.display = "block";
+        ytPlayer = createYT(ytId);
+      } else {
+        ytContainer.style.display = "none";
+        video.style.display = "block";
+        video.src = msg.url.startsWith("http") ? msg.url : `/media/${msg.url}`;
+      }
       break;
+
     case "play":
-      video.play();
+      if (ytPlayer) ytPlayer.playVideo();
+      else video.play();
       break;
+
     case "pause":
-      video.pause();
+      if (ytPlayer) ytPlayer.pauseVideo();
+      else video.pause();
       break;
+
     case "time_update":
-      // Если рассинхрон больше 0.5 с, подгоняем
-      if (Math.abs(video.currentTime - msg.time) > 0.5) {
+      if (!ytPlayer && Math.abs(video.currentTime - msg.time) > 0.5) {
         video.currentTime = msg.time;
       }
       break;
+
     case "seek":
-      video.currentTime = msg.time;
+      if (ytPlayer) ytPlayer.seekTo(msg.time, true);
+      else video.currentTime = msg.time;
       break;
-    default:
-      console.warn("Неизвестный тип сообщения:", msg.type);
+
+    case "chat":
+      const div = document.createElement("div");
+      div.className = "msg";
+      div.textContent = `${msg.user}: ${msg.text}`;
+      messagesEl.append(div);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+      break;
   }
-};
+});
 
-// 3) Отправка команд при нажатии кнопок
-loadBtn.onclick = () => {
-  const fn = mediaList.value;
-  if (!fn) return;
-  ws.send(JSON.stringify({ type: "load", url: fn }));
-};
-
-playBtn.onclick = () => {
-  ws.send(JSON.stringify({ type: "play" }));
-};
-
-pauseBtn.onclick = () => {
-  ws.send(JSON.stringify({ type: "pause" }));
-};
-
-// 4) При изменении времени воспроизведения отправляем обновление на сервер
-video.ontimeupdate = () => {
-  ws.send(JSON.stringify({
-    type: "time_update",
-    time: video.currentTime
-  }));
-};
-
-// 5) Обработка ошибок соединения
-ws.onerror = err => console.error("WebSocket error:", err);
-ws.onclose = () => console.warn("WebSocket закрыт");
+// 9) Логи WebSocket
+ws.addEventListener("error", e => console.error("WS Error:", e));
+ws.addEventListener("close", () => console.warn("WS Closed"));

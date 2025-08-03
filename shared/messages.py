@@ -22,3 +22,17 @@ class Seek(BaseMessage):
 class Load(BaseMessage):
     type: Literal["load"] = "load"
     url: str = Field(..., description="URL или имя файла для загрузки у клиентов")
+
+
+class Chat(BaseModel):
+    type: Literal["chat"] = "chat"
+    user: str = Field(..., description="Имя отправителя")
+    text: str = Field(..., description="Текст сообщения")
+
+
+class ChatHistory(BaseModel):
+    type: Literal["chat_history"] = "chat_history"
+    messages: list[Chat]
+
+class ClearChat(BaseModel):
+    type: Literal["clear_chat"] = "clear_chat"

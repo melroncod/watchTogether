@@ -1,3 +1,4 @@
+# server/media_handler.py
 import os
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
@@ -8,18 +9,22 @@ router = APIRouter(prefix=settings.http_media_path)
 @router.get("/list")
 async def list_media():
     """
-    Возвращает JSON-массив с именами файлов в папке media.
+    Возвращает список файлов в папке media.
     """
-    files = []
-    for fn in os.listdir(settings.media_dir):
-        path = os.path.join(settings.media_dir, fn)
-        if os.path.isfile(path):
-            files.append(fn)
+    try:
+        files = [
+            fn for fn in os.listdir(settings.media_dir)
+            if os.path.isfile(os.path.join(settings.media_dir, fn))
+        ]
+    except FileNotFoundError:
+        files = []
     return files
-
 
 @router.get("/{filename}")
 async def get_media(filename: str):
+    """
+    Отдаёт файл по имени из media_dir.
+    """
     file_path = os.path.join(settings.media_dir, filename)
     if not os.path.isfile(file_path):
         raise HTTPException(status_code=404, detail="File not found")

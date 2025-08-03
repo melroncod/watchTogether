@@ -1,6 +1,107 @@
-body { font-family: sans-serif; text-align: center; margin: 2rem; }
-video { background: #000; }
-.controls { margin-top: 1rem; }
-.controls button, .controls input {
-  margin: 0 .5rem; padding: .5rem 1rem; font-size: 1rem;
+body {
+  font-family: 'Comic Sans MS', cursive, sans-serif;
+  background: linear-gradient(135deg, #ffb6c1, #ffe4e1);
+  color: #333;
+  text-align: center;
+  padding: 2rem;
+}
+
+h1 {
+  color: #e91e63;
+  text-shadow: 1px 1px 2px #fff;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.controls label {
+  margin-right: .25rem;
+}
+
+.controls select,
+.controls input[type="text"] {
+  border: 2px solid #ff69b4;
+  border-radius: .5rem;
+  padding: .5rem;
+  font-size: 1rem;
+  outline: none;
+}
+
+.controls button {
+  background: #ff69b4;
+  border: none;
+  border-radius: 1rem;
+  padding: .5rem 1rem;
+  font-size: 1rem;
+  color: white;
+  box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+  cursor: pointer;
+  transition: transform .1s;
+}
+
+.controls button:hover {
+  transform: scale(1.05);
+}
+
+/* Центрируем плеер */
+#playerWrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+#playerContainer {
+  position: relative;
+  width: 800px;
+  height: 450px;
+}
+
+#playerContainer video,
+#playerContainer #ytPlayer {
+  width: 100%;
+  height: 100%;
+  border: 5px solid #ff69b4;
+  border-radius: .5rem;
+  background: #000;
+}
+
+/* Чат */
+.chat {
+  margin-top: 2rem;
+  background: #fff0f5;
+  border: 2px solid #ff1493;
+  border-radius: 1rem;
+  width: 80%;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 1rem;
+}
+
+.messages {
+  height: 200px;
+  overflow-y: auto;
+  text-align: left;
+  padding: .5rem;
+  background: #ffe4e1;
+  border-radius: .5rem;
+  margin-bottom: .5rem;
+}
+
+.messages .msg {
+  margin: .2rem 0;
+  padding: .2rem .5rem;
+  border-radius: .3rem;
+  background: #fff;
+}
+
+.chat-input {
+  display: flex;
+  gap: .5rem;
+  justify-content: center;
 }
