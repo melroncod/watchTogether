@@ -12,6 +12,7 @@ const urlInput    = document.getElementById("urlInput");
 const loadBtn     = document.getElementById("load");
 const playBtn     = document.getElementById("play");
 const pauseBtn    = document.getElementById("pause");
+const syncBtn     = document.getElementById("sync");
 const messagesEl  = document.getElementById("messages");
 const chatUser    = document.getElementById("chatUser");
 const chatText    = document.getElementById("chatText");
@@ -28,16 +29,16 @@ fetch("/media/list")
     if (files.length === 0) {
       mediaList.innerHTML += `<option disabled>Нет файлов</option>`;
     } else {
-      for (const fn of files) {
+      files.forEach(fn => {
         const o = document.createElement("option");
         o.value = o.textContent = fn;
         mediaList.append(o);
-      }
+      });
     }
   })
   .catch(e => {
     console.error("media/list failed:", e);
-    mediaList.innerHTML = `<option disabled>Ошибка загрузки</option>`;
+    mediaList.innerHTML = `<option disabled>Ошибка</option>`;
   });
 
 // 3) YouTube-хелперы
@@ -67,7 +68,7 @@ function createYT(id) {
     playerVars: { autoplay: 0, controls: 1 },
     events: {
       onReady: e => {
-        // Запускаем polling для seek
+        // polling для seek
         let last = e.target.getCurrentTime();
         ytPoll = setInterval(() => {
           const now = e.target.getCurrentTime();
@@ -91,26 +92,31 @@ function createYT(id) {
 
 // 4) Load
 loadBtn.addEventListener("click", () => {
-  const custom   = urlInput.value.trim();
+  const custom    = urlInput.value.trim();
   const selection = mediaList.value;
   let url = "";
   if (custom) url = custom;
   else if (selection) url = selection;
-  else return; // ничего не выбрано
-
+  else return;
   ws.send(JSON.stringify({ type: "load", url }));
 });
 
 // 5) Play / Pause
-playBtn.addEventListener("click", () => ws.send(JSON.stringify({ type: "play" })));
+playBtn.addEventListener("click",  () => ws.send(JSON.stringify({ type: "play" })));
 pauseBtn.addEventListener("click", () => ws.send(JSON.stringify({ type: "pause" })));
 
-// 6) Local video timeupdate
+// 6) Sync
+syncBtn.addEventListener("click", () => {
+  const t = ytPlayer ? ytPlayer.getCurrentTime() : video.currentTime;
+  ws.send(JSON.stringify({ type: "sync", time: t }));
+});
+
+// 7) Local video timeupdate
 video.addEventListener("timeupdate", () => {
   ws.send(JSON.stringify({ type: "time_update", time: video.currentTime }));
 });
 
-// 7) Chat
+// 8) Chat send
 chatSend.addEventListener("click", () => {
   const user = chatUser.value.trim() || "Anon";
   const text = chatText.value.trim();
@@ -119,7 +125,7 @@ chatSend.addEventListener("click", () => {
   chatText.value = "";
 });
 
-// 8) Обработка входящих сообщений
+// 9) Обработка входящих сообщений
 ws.addEventListener("message", evt => {
   const msg = JSON.parse(evt.data);
   switch (msg.type) {
@@ -127,37 +133,38 @@ ws.addEventListener("message", evt => {
       cleanupPlayers();
       const ytId = extractYTId(msg.url);
       if (ytId) {
-        video.style.display = "none";
+        video.style.display       = "none";
         ytContainer.style.display = "block";
         ytPlayer = createYT(ytId);
       } else {
         ytContainer.style.display = "none";
-        video.style.display = "block";
-        video.src = msg.url.startsWith("http") ? msg.url : `/media/${msg.url}`;
+        video.style.display       = "block";
+        video.src = msg.url.startsWith("http")
+          ? msg.url
+          : `/media/${msg.url}`;
       }
       break;
-
     case "play":
       if (ytPlayer) ytPlayer.playVideo();
       else video.play();
       break;
-
     case "pause":
       if (ytPlayer) ytPlayer.pauseVideo();
       else video.pause();
       break;
-
+    case "sync":
+      if (ytPlayer) ytPlayer.seekTo(msg.time, true);
+      else video.currentTime = msg.time;
+      break;
     case "time_update":
       if (!ytPlayer && Math.abs(video.currentTime - msg.time) > 0.5) {
         video.currentTime = msg.time;
       }
       break;
-
     case "seek":
       if (ytPlayer) ytPlayer.seekTo(msg.time, true);
       else video.currentTime = msg.time;
       break;
-
     case "chat":
       const div = document.createElement("div");
       div.className = "msg";
@@ -168,6 +175,6 @@ ws.addEventListener("message", evt => {
   }
 });
 
-// 9) Логи WebSocket
+// 10) Логи WebSocket
 ws.addEventListener("error", e => console.error("WS Error:", e));
 ws.addEventListener("close", () => console.warn("WS Closed"));

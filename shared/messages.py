@@ -34,5 +34,7 @@ class ChatHistory(BaseModel):
     type: Literal["chat_history"] = "chat_history"
     messages: list[Chat]
 
-class ClearChat(BaseModel):
-    type: Literal["clear_chat"] = "clear_chat"
+
+class Sync(BaseModel):
+    type: Literal["sync"] = "sync"
+    time: float = Field(..., description="Время для синхронизации в секундах")
