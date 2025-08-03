@@ -1,0 +1,6 @@
+body { font-family: sans-serif; text-align: center; margin: 2rem; }
+video { background: #000; }
+.controls { margin-top: 1rem; }
+.controls button, .controls input {
+  margin: 0 .5rem; padding: .5rem 1rem; font-size: 1rem;
+}

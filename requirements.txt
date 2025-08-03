@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]==0.23.0
+aiofiles
+httpx
+websockets==11.0.3
+pydantic
+pytest
+pydantic-settings==2.10.0
