@@ -5,8 +5,8 @@
 ## Установка
 
 ```bash
-git clone https://…/sync-streamer.git
-cd sync-streamer
+git clone https://github.com/melroncod/watchTogether
+cd watchTogether
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
