@@ -5,7 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="87f3d9de-5cbf-4674-908c-bd45bfa77ff3" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/web/app.js" beforeDir="false" afterPath="$PROJECT_DIR$/client/web/app.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/media_handler.py" beforeDir="false" afterPath="$PROJECT_DIR$/server/media_handler.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/sync_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/server/sync_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/shared/messages.py" beforeDir="false" afterPath="$PROJECT_DIR$/shared/messages.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

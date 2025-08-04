@@ -1,5 +1,3 @@
-# server/sync_manager.py
-
 import os
 import json
 from typing import Set
